@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+dist/
+build/
+.clearact/
+.env
+clearact.json
+data/
+workspaces/
+development/records/
+development/.cache/

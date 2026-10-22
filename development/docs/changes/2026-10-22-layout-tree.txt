@@ -1,0 +1,55 @@
+clearact-lite/
+├── AGENTS.md                         后续开发必须遵守的协作和架构约定
+├── .gitignore                        排除密钥、本地记录、缓存和构建产物
+├── pyproject.toml                    包信息、两项运行依赖、测试和 Ruff 配置
+├── clearact.cmd                      Windows 本地源码启动入口
+├── README.md                         状态、安装、运行、配置、验证入口
+├── src/clearact_lite/
+│   ├── __init__.py                   包版本号
+│   ├── __main__.py                   python -m clearact_lite 的入口
+│   ├── settings.py                   唯一配置结构及环境变量转换
+│   ├── bootstrap.py                  默认模块装配和工具注册，集中替换实现
+│   ├── application.py                上层唯一入口：运行、停止、分支、恢复、报告
+│   ├── cli.py                        命令解析、实际阶段和流式文本展示
+│   ├── core/
+│   │   ├── __init__.py               共享核心包边界
+│   │   ├── contracts.py              公共数据、版本号、完整消息事务校验
+│   │   ├── ports.py                  模型、工具、事件存储、快照的扩展协议
+│   │   └── errors.py                 协议、容量与恢复冲突等显式错误
+│   ├── runtime/
+│   │   ├── __init__.py               执行模块边界
+│   │   └── runner.py                 唯一模型工具循环、停止、超时和用量汇总
+│   ├── context/
+│   │   ├── __init__.py               上下文模块边界
+│   │   └── builder.py                从原始消息投影请求、摘录和容量检查
+│   ├── providers/
+│   │   ├── __init__.py               模型适配器边界
+│   │   └── openai_compatible.py      HTTP/SSE、工具参数组装、原始响应及用量
+│   ├── storage/
+│   │   ├── __init__.py               本地存储模块边界
+│   │   ├── sqlite.py                 事件追加、数据库版本、父分支和分叉截点
+│   │   ├── snapshots.py              路径定位、原始字节快照、diff、原子写和恢复
+│   │   └── lease.py                  操作系统写锁，防止同工作区并发执行
+│   └── tools/
+│       ├── __init__.py               工具模块边界
+│       ├── registry.py               注册及 JSON Schema 校验，统一错误结果
+│       ├── files.py                  文件分页读取、快照写入、交付登记
+│       └── history.py                按事件 ID 分页读取原始历史
+└── development/                     开发与验收资料统一收纳区
+    ├── README.md                    开发资料导航、位置迁移说明
+    ├── tests/
+    │   ├── test_foundation.py        执行、续聊、分支、恢复、停止、流式协议验证
+    │   └── test_contract_boundary.py 依赖方向及公共序列化契约验证
+    ├── scripts/
+    │   └── evaluate_foundation.py    隔离的小文件真实模型冒烟，保存实际结果
+    ├── docs/
+    │   ├── WORKFLOW.md               每批修改的沟通与解释图要求
+    │   ├── ARCHITECTURE.md           当前模块表、总流程、完整文件树和限制
+    │   ├── CONTRACTS.md              v1 统一接口、公共事件及兼容规则
+    │   └── changes/
+    │       ├── 2026-10-22-foundation.md       首轮修改解释图与验证
+    │       ├── 2026-10-22-foundation-tree.txt 首轮文件树快照
+    │       ├── 2026-10-22-layout.md           本轮目录调整解释图、树和验证
+    │       └── 2026-10-22-layout-tree.txt     本轮完整文件树快照
+    ├── records/                     不上传的原始现场与结果，明细见下方
+    └── .cache/                      开发工具缓存，不上传

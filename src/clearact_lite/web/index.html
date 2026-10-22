@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="clearact-token" content="__TOKEN__">
+  <title>ClearAct Lite · 本地工作台</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside id="sidebar" class="sidebar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><div><b>ClearAct <span>Lite</span></b><small>YOUR LOCAL WORKSPACE</small></div></div>
+      <button id="new-topic" class="primary new-topic" type="button"><span>＋ 新建话题</span><kbd>Ctrl K</kbd></button>
+      <div class="history-heading"><span>过往话题</span><span id="topic-count">0</span></div>
+      <nav id="topics" class="topics" aria-label="历史话题"><p class="empty-list">你的工作，从这里开始。</p></nav>
+      <div class="sidebar-bottom">
+        <div class="mode-note"><i></i><div><b>完全控制模式</b><small>由模型选择工具与执行步骤</small></div></div>
+        <button id="theme-toggle" class="nav-button" type="button"><span aria-hidden="true">☼</span><span>切换深色外观</span></button>
+        <button id="settings-trigger" class="nav-button" type="button"><span aria-hidden="true">⚙</span><span>模型与设置</span><span class="chevron">›</span></button>
+        <button id="mcp-trigger" class="nav-button" type="button"><span aria-hidden="true">⌘</span><span>MCP 扩展</span><small id="mcp-count" class="chevron">0</small></button>
+        <div class="local-caption">本地运行 · 过程留存</div>
+      </div>
+    </aside>
+    <main class="workspace">
+      <header class="workspace-header">
+        <div class="header-title"><button id="menu-toggle" class="icon-button mobile-only" type="button" aria-label="展开话题列表">☰</button><div><h1 id="topic-title">新建话题</h1><span id="topic-subtitle">把想法变成看得见的成果</span></div></div>
+        <div class="header-actions"><span id="connection" class="connection"><i></i><span>正在连接</span></span><button id="browser-toggle" class="secondary" type="button" aria-expanded="false">浏览器</button><button id="inspector-toggle" class="secondary" type="button" aria-expanded="false">执行记录</button></div>
+      </header>
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+      <div class="content-area">
+        <section id="welcome" class="welcome">
+          <div class="welcome-symbol" aria-hidden="true">✦</div>
+          <div class="eyebrow">CLEARACT / A LITTLE LESS, A LOT CLEARER</div>
+          <h2>把目标告诉我，<br>剩下的交给 ClearAct<span>。</span></h2>
+          <p>在你的工作区里读取、整理与创建文件。<br>每一步都有记录，每一次修改都有来处。</p>
+          <div class="quick-cards">
+            <button id="choose-workspace" class="quick-card" type="button"><span class="quick-icon" aria-hidden="true">▱</span><span><b>处理本地文件</b><small>选择这次任务使用的文件夹</small></span><span class="chevron">↗</span></button>
+            <button id="example-task" class="quick-card" type="button"><span class="quick-icon" aria-hidden="true">✧</span><span><b>创建一份交付文件</b><small>从一个简单任务开始</small></span><span class="chevron">↗</span></button>
+          </div>
+          <div class="welcome-footnote"><span></span>文件 · 对话 · 历史分支 · 修改快照</div>
+        </section>
+        <section id="conversation" class="conversation hidden" aria-label="任务对话">
+          <div id="messages"></div>
+          <article id="live-message" class="message assistant hidden"><div class="avatar" aria-hidden="true">✦</div><div class="message-body"><div class="message-label">ClearAct <span class="typing">正在输出</span></div><div id="live-output" class="message-text"></div></div></article>
+          <div id="run-summary" class="run-summary hidden"></div>
+          <div id="deliveries" class="deliveries"></div>
+        </section>
+      </div>
+      <div class="composer-wrap">
+        <div id="stage" class="stage hidden" role="status" aria-live="polite"><span class="stage-dot"></span><span id="stage-label">准备运行</span><button id="stop-run" type="button">■ 停止运行</button></div>
+        <form id="run-form" class="composer">
+          <div id="attachment-list" class="attachment-list hidden" aria-label="本轮附件"></div>
+          <label class="sr-only" for="goal">任务要求</label>
+          <textarea id="goal" rows="2" placeholder="告诉 ClearAct，你希望完成什么…" required></textarea>
+          <div class="composer-bar"><div class="composer-left"><button id="attach-files" class="attach-button" type="button" aria-label="上传附件" title="上传文件，也可拖放或粘贴"><span aria-hidden="true">＋</span></button><input id="file-input" type="file" multiple hidden><button id="workspace-trigger" type="button" class="workspace-button"><span aria-hidden="true">▱</span><span id="workspace-short">工作区</span></button></div><div class="composer-right"><span class="keyboard-hint">Enter 发送</span><button id="send" type="submit" class="primary send-button">发送 <span aria-hidden="true">↑</span></button></div></div>
+        </form>
+        <div class="composer-footnote"><span id="model-caption">正在读取模型设置</span><span>结果请以实际文件与核验为准</span></div>
+      </div>
+    </main>
+    <aside id="inspector" class="inspector hidden" aria-label="执行记录">
+      <header><div><b>执行记录</b><small>看到动作，也看到结果</small></div><button id="inspector-close" class="icon-button" type="button" aria-label="关闭执行记录">×</button></header>
+      <div class="inspector-tabs" role="tablist" aria-label="记录类型"><button id="tab-actions" role="tab" aria-selected="true" class="active" type="button">工具与阶段</button><button id="tab-changes" role="tab" aria-selected="false" type="button">文件修改</button></div>
+      <div id="action-records" class="record-list"></div><div id="change-records" class="record-list hidden"></div>
+      <footer><button id="fork-topic" class="secondary" type="button">从当前记录创建分支</button><button id="export-history" class="text-button" type="button">下载完整记录 ↓</button></footer>
+    </aside>
+    <aside id="browser-panel" class="browser-panel hidden" aria-label="共享浏览器">
+      <header><div><b>共享浏览器</b><small id="browser-status">你和 Agent 使用同一个会话</small></div><button id="browser-panel-close" class="icon-button" type="button" aria-label="收起浏览器">×</button></header>
+      <form id="browser-address-form" class="browser-address"><button id="browser-back" type="button" class="icon-button" aria-label="浏览器后退">‹</button><button id="browser-reload" type="button" class="icon-button" aria-label="刷新浏览器">↻</button><input id="browser-url" type="text" aria-label="浏览器地址" placeholder="网址或工作区 HTML 路径"><button class="secondary" type="submit">前往</button></form>
+      <div id="browser-screen" class="browser-screen" tabindex="0" aria-label="浏览器画面，可点击、滚动和按键"><img id="browser-image" alt="Agent 浏览器当前页面" draggable="false"><div id="browser-empty" class="browser-empty">浏览器尚未启动。输入网址，或直接让 Agent 打开网页。</div></div>
+      <form id="browser-type-form" class="browser-type"><input id="browser-text" type="text" aria-label="向浏览器输入文字" placeholder="先点击页面输入框，再在此输入文字"><button type="submit" class="secondary">输入</button></form>
+      <p id="browser-feedback" class="browser-feedback" role="status" aria-live="polite"></p>
+      <footer><span>独立会话 · 操作与模型同步</span><button id="browser-close-session" class="text-button" type="button">关闭会话</button></footer>
+    </aside>
+  </div>
+  <dialog id="settings-dialog" class="dialog">
+    <form id="settings-form">
+      <header><div><h2>模型与设置</h2><p>连接你的模型，在本地保存配置。</p></div><button type="button" class="icon-button" data-close="settings-dialog" aria-label="关闭设置">×</button></header>
+      <div class="dialog-body">
+        <div class="settings-intro"><span class="model-icon" aria-hidden="true">◈</span><div><b>兼容 Chat Completions 接口</b><small>可连接本地推理服务或兼容 API</small></div><span class="small-tag">当前模型</span></div>
+        <div class="setting-grid">
+          <label class="full">接口地址<input name="base_url" type="url" required placeholder="http://localhost:1235/v1"></label>
+          <label class="full">模型名称<input name="model" type="text" required placeholder="qwen/qwen3.8-27b" list="model-options"><datalist id="model-options"></datalist></label>
+          <label class="full">API 密钥<input name="api_key" type="password" autocomplete="new-password" placeholder="服务无需鉴权时可留空"><small id="key-state">密钥保存在本机，不回显。</small></label>
+        </div>
+        <div class="setting-actions"><button id="probe-model" class="secondary" type="button">测试已保存的连接</button><button id="clear-key" class="text-button" type="button">清除已保存密钥</button><span id="probe-status" role="status"></span></div>
+        <details class="advanced"><summary>高级参数</summary><div class="setting-grid">
+          <label>上下文容量<input name="context_tokens" type="number" min="1024" required></label>
+          <label>输出上限<input name="max_output_tokens" type="number" min="1" required></label>
+          <label>思考强度<select name="reasoning_effort"><option value="none">关闭 / none</option><option value="">由服务决定</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option></select></label>
+          <label>温度<input name="temperature" type="number" min="0" max="2" step="0.05" required></label>
+          <label>单次请求超时（秒）<input name="request_timeout_seconds" type="number" min="1" required></label>
+          <label>整轮运行超时（秒）<input name="run_timeout_seconds" type="number" min="1" required></label>
+          <label>自动压缩<select name="auto_compact"><option value="true">启用</option><option value="false">关闭</option></select></label>
+          <label>压缩触发比例<input name="compact_threshold" type="number" min="0.1" max="0.99" step="0.01" required><small>按估算占用（含输出预留），0.9 表示 90%</small></label>
+          <label>压缩目标比例<input name="compact_target" type="number" min="0.05" max="0.98" step="0.01" required></label>
+          <label>输出截断后续跑<select name="auto_continue"><option value="true">从完整动作断点继续</option><option value="false">保存现场并停止</option></select></label>
+        </div></details>
+        <p id="settings-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+      </div>
+      <footer><button type="button" class="secondary" data-close="settings-dialog">取消</button><button id="save-settings" class="primary" type="submit">保存设置</button></footer>
+    </form>
+  </dialog>
+  <dialog id="workspace-dialog" class="dialog compact">
+    <form id="workspace-form"><header><div><h2>选择工作区</h2><p>在这个文件夹内读取、创建和修改文件。</p></div><button type="button" class="icon-button" data-close="workspace-dialog" aria-label="关闭工作区设置">×</button></header><div class="dialog-body"><label for="workspace-input">本地文件夹路径</label><input id="workspace-input" type="text" placeholder="例如 E:\工作文件" required><p class="field-hint">不存在的文件夹会自动创建；切换后展示该工作区的话题。</p><p id="workspace-feedback" class="form-feedback" role="status"></p></div><footer><button type="button" class="secondary" data-close="workspace-dialog">取消</button><button type="submit" class="primary">使用此工作区</button></footer></form>
+  </dialog>
+  <dialog id="mcp-dialog" class="dialog mcp-dialog">
+    <header><div><h2>MCP 扩展</h2><p>连接本地命令或远程服务，让模型按需发现和调用工具。</p></div><button type="button" class="icon-button" data-close="mcp-dialog" aria-label="关闭 MCP 设置">×</button></header>
+    <div class="dialog-body">
+      <div class="mcp-heading"><b>已配置服务</b><button id="mcp-add" class="secondary config-action" type="button">＋ 添加服务</button></div>
+      <div id="mcp-servers" class="mcp-servers"></div>
+      <form id="mcp-editor" class="mcp-editor hidden">
+        <div class="setting-grid"><label>服务名称<input name="name" required placeholder="例如 local-tools"></label><label>连接方式<select name="transport"><option value="stdio">本地命令 / stdio</option><option value="streamable_http">远程 HTTP</option><option value="sse">远程 SSE</option></select></label><label class="full">远程地址<input name="url" type="text" placeholder="https://example.com/mcp"></label><label class="full">本地命令<input name="command" placeholder="例如 python、npx 或可执行文件路径"></label><label class="full">命令参数（JSON 数组）<textarea name="args" rows="2" placeholder='["-m", "your_mcp_server"]'></textarea></label><label>环境变量（JSON 对象）<textarea name="env" rows="3" placeholder="留空保留已保存值"></textarea></label><label>请求头（JSON 对象）<textarea name="headers" rows="3" placeholder="留空保留已保存值"></textarea></label><label>连接超时（秒）<input name="connect_timeout" type="number" value="15" min="1" required></label><label>调用超时（秒）<input name="call_timeout" type="number" value="60" min="1" required></label></div>
+        <p id="mcp-secret-hint" class="field-hint">环境变量和请求头只保存在本机，不回显。填写 {} 可清空。</p>
+        <div class="editor-actions"><button id="mcp-editor-cancel" type="button" class="secondary">取消</button><button type="submit" class="primary config-action">保存服务</button></div>
+      </form>
+      <details class="advanced"><summary>导入 mcpServers JSON</summary><textarea id="mcp-import-json" rows="5" aria-label="MCP JSON 配置" placeholder='{"mcpServers":{"example":{"command":"python","args":["server.py"]}}}'></textarea><button id="mcp-import" type="button" class="secondary config-action">合并导入</button></details>
+      <p id="mcp-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+    </div>
+    <footer><button type="button" class="secondary" data-close="mcp-dialog">完成</button></footer>
+  </dialog>
+  <script src="/assets/capabilities.js" defer></script>
+</body>
+</html>
