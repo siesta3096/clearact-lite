@@ -1,0 +1,118 @@
+clearact-lite/
+├── development/
+│   ├── docs/
+│   │   ├── changes/
+│   │   │   ├── 2026-10-22-capabilities-tree.txt                                                     本轮完整逐文件职责树快照
+│   │   │   ├── 2026-10-22-capabilities.md                                                           本轮解释图、实际验证、用量与未通过项
+│   │   │   ├── 2026-10-22-foundation-tree.txt                                                       基础版完整文件树（历史）
+│   │   │   ├── 2026-10-22-foundation.md                                                             基础版修改图、结果和限制（历史）
+│   │   │   ├── 2026-10-22-frontend-tree.txt                                                         前端接入后的完整文件树（历史）
+│   │   │   ├── 2026-10-22-frontend.md                                                               前端接入图、验证和失败（历史）
+│   │   │   ├── 2026-10-22-layout-tree.txt                                                           归档调整后的完整文件树（历史）
+│   │   │   ├── 2026-10-22-layout.md                                                                 开发资料归档调整说明（历史）
+│   │   │   ├── 2026-10-22-long-work-tree.txt                                                        本轮全部受维护文件与逐文件职责快照
+│   │   │   ├── 2026-10-22-long-work.md                                                              本轮修改图、参数实测、失败、证据及未通过项
+│   │   │   ├── 2026-10-23-context-repair-tree.txt                                                   本轮完整文件树和逐文件职责快照
+│   │   │   ├── 2026-10-23-context-repair.md                                                         本轮修改解释图、原因、验证、真实游戏与未验证项
+│   │   │   ├── 2026-10-23-game-load-tree.txt                                                        本轮完整维护文件树与逐文件职责快照
+│   │   │   ├── 2026-10-23-game-load.md                                                              本轮E盘游戏实测、性能、失败、待用户审查的建议；Agent本体未改
+│   │   │   ├── 2026-10-25-fps-attempt-tree.txt                                                      本轮完整逐文件职责树快照
+│   │   │   ├── 2026-10-25-fps-attempt.md                                                            本轮解释图、原始计划、真实结果、差距与待确认方案
+│   │   │   ├── 2026-10-27-check-budget-tree.txt                                                     补齐检查预算后的完整维护文件与逐文件职责树
+│   │   │   ├── 2026-10-27-check-budget.md                                                           真实成功检查循环失败、补救预算补充、误拦截边界和同分支续跑记录
+│   │   │   ├── 2026-10-27-reliability-tree.txt                                                      本轮受维护完整文件树和逐文件职责快照
+│   │   │   └── 2026-10-27-reliability.md                                                            本轮修改图、职责变化、兼容边界、实际测试与游戏重试记录
+│   │   ├── ARCHITECTURE.md                                                                          当前总流程、模块表、完整逐文件职责树及边界
+│   │   ├── CONTRACTS.md                                                                             统一 v1 接口与本轮新增计划/子代理/容量契约
+│   │   ├── RELIABILITY_PLAN.md                                                                      已授权的通用可靠性方案与第一版实施边界，不以方案替代实测
+│   │   ├── RULES.md                                                                                 实际提示、用户授权的新容量行为与保留的技术限制
+│   │   └── WORKFLOW.md                                                                              每批修改前中后的沟通和解释图约定
+│   ├── fixtures/
+│   │   ├── large-tactical-fps.txt                                                                   CSGO质量目标的完整FPS任务样本，保留质量与未实现项边界
+│   │   └── large-visual-novel.txt                                                                   完整原始大游戏任务文本，不含旧游戏实现
+│   ├── scripts/
+│   │   ├── evaluate_foundation.py                                                                   隔离小文件真实本地模型冒烟及用量记录
+│   │   ├── evaluate_long_work.py                                                                    真实本地参数矩阵、累计/容量边界、诱发截断续跑及原始大任务
+│   │   ├── evaluate_tactical_fps.py                                                                 通过现有Application执行一次真实FPS大任务，仅记录不修改Agent
+│   │   ├── evaluation_observer.py                                                                   仅开发侧被动SSE计时、实际用量与整机负载采样
+│   │   ├── mcp_fixture.py                                                                           隔离的真实 FastMCP 测试服务，三种传输与副作用样例
+│   │   ├── verify_capabilities.py                                                                   UI/真实模型/完整大任务，保留失败及明确反馈复测
+│   │   ├── verify_context_repair.py                                                                 离线重放原失败预算；不调用模型、不修改旧现场
+│   │   ├── verify_frontend.py                                                                       Edge 工作台交互、停止/恢复/分支及真实模型验收
+│   │   ├── verify_launcher.py                                                                       真实 Windows 启动器、错误保留、就绪与清理验证
+│   │   ├── verify_long_frontend.py                                                                  真实 Edge 检查长任务参数、子记录、父子恢复（协议替身）
+│   │   ├── verify_long_game.py                                                                      独立副本中的实际鼠标/键盘路线、存读档、重开、素材和缺项验收
+│   │   ├── verify_reliability.py                                                                    旧归档下一步对照及真实本地模型数据/浏览器错误恢复；独立核对结果
+│   │   ├── verify_tactical_combat.py                                                                冻结副本真实败局、Esc与点击重开、只读位置引导的原生瞄准验收；失败保留
+│   │   └── verify_tactical_fps.py                                                                   冻结游戏副本的真实键鼠操作、只读状态与画面验收
+│   ├── tests/
+│   │   ├── test_capabilities.py                                                                     真实三种 MCP/Edge、上传、文档和二进制恢复测试
+│   │   ├── test_context_budget.py                                                                   容量估算、工作集保留、依赖交接与恢复行为测试
+│   │   ├── test_contract_boundary.py                                                                依赖方向、统一数据序列化与版本测试
+│   │   ├── test_evaluation_harness.py                                                               开发侧人工停止观察器回归，真实取消接口与结果落盘，不调用模型
+│   │   ├── test_foundation.py                                                                       运行、分支、快照、恢复、停止与模型协议测试
+│   │   ├── test_gateway.py                                                                          本机 HTTP、设置脱敏、停止、恢复与下载测试
+│   │   ├── test_long_work.py                                                                        压缩保真/协议、断点、追加版本、子隔离/停止和累计用量测试
+│   │   └── test_reliability.py                                                                      确定性错误止损、换方法恢复、误拦截边界、归档与子代理交接回归
+│   └── README.md                                                                                    安装、启动、能力用法、配置与验收入口
+├── src/
+│   └── clearact_lite/
+│       ├── context/
+│       │   ├── __init__.py                                                                          context包边界
+│       │   ├── budget.py                                                                            请求指纹、实报输入锚点与新增内容容量界限
+│       │   ├── builder.py                                                                           稳定索引、完整消息投影、实报预算及容量边界
+│       │   └── compaction.py                                                                        完整事务归档及成功工具参数/回执、计划、问题与补救状态的有界事实索引
+│       ├── core/
+│       │   ├── __init__.py                                                                          core包边界
+│       │   ├── contracts.py                                                                         唯一公共DTO：消息、计划、用量、成功工具事实与补救状态
+│       │   ├── errors.py                                                                            协议、容量与恢复冲突的显式异常
+│       │   └── ports.py                                                                             统一模型、存储、浏览器、MCP 和 DelegationPort 扩展协议
+│       ├── gateway/
+│       │   ├── __init__.py                                                                          gateway包边界
+│       │   ├── contracts.py                                                                         HTTP v1输入DTO、兼容默认值和设置边界校验
+│       │   ├── server.py                                                                            本机 HTTP/SSE、上传/浏览器/MCP 路由与静态资源
+│       │   └── service.py                                                                           活动运行、配置保存、上传限制及实时帧
+│       ├── integrations/
+│       │   ├── __init__.py                                                                          integrations包边界
+│       │   ├── browser.py                                                                           浏览器打开/读取/操作三个统一工具及 Schema
+│       │   ├── config.py                                                                            三种 MCP 传输配置归一化、校验、私密值保留
+│       │   └── mcp.py                                                                               服务/工具发现与调用两个统一工具，依赖 MCPPort
+│       ├── providers/
+│       │   ├── __init__.py                                                                          providers包边界
+│       │   └── openai_compatible.py                                                                 本地兼容 HTTP/SSE，组装流式调用与原始响应
+│       ├── runtime/
+│       │   ├── __init__.py                                                                          runtime包边界
+│       │   ├── delegation.py                                                                        串行独立子历史、文件分配、事实/待办交接及子任务暂停返回主代理
+│       │   ├── reliability.py                                                                       统一重复错误及成功检查停滞的有界诊断、原始证据与恢复；不调用模型
+│       │   └── runner.py                                                                            主子统一模型工具循环、容量续跑、执行记录及有界失败诊断与断点停止
+│       ├── storage/
+│       │   ├── __init__.py                                                                          storage包边界
+│       │   ├── lease.py                                                                             操作系统工作区写锁
+│       │   ├── snapshots.py                                                                         写前快照、版本核对、恢复、字节数和文本尾部元信息
+│       │   ├── sqlite.py                                                                            追加事件、完整消息、历史分支和事务边界
+│       │   └── uploads.py                                                                           原始附件 blob、独立工作副本、元信息及哈希
+│       ├── tools/
+│       │   ├── __init__.py                                                                          tools包边界
+│       │   ├── browser.py                                                                           浏览器打开/读取/操作三个统一工具及 Schema
+│       │   ├── documents.py                                                                         按需提取 PDF/DOCX/XLSX/XLSM 内容与公式
+│       │   ├── files.py                                                                             目录根兼容、文件读取/交付、分段追加与局部编辑
+│       │   ├── history.py                                                                           完整历史分页、原工具参数、统一字符游标与EOF事实
+│       │   ├── mcp.py                                                                               服务/工具发现与调用两个统一工具，依赖 MCPPort
+│       │   ├── registry.py                                                                          统一工具注册、Schema 校验和异步资源释放
+│       │   └── tasks.py                                                                             增量计划、子代理和工作断点统一工具契约
+│       ├── web/
+│       │   ├── app.js                                                                               HTTP/SSE、压缩/续跑/子代理阶段、子修改与记录下载
+│       │   ├── capabilities.js                                                                      上传/拖放/粘贴、MCP 编辑连接和共享浏览器操作
+│       │   ├── index.html                                                                           工作台、MCP/浏览器/附件及长任务参数控件
+│       │   └── style.css                                                                            响应式浅色/深色界面、附件和侧栏布局
+│       ├── __init__.py                                                                              clearact_lite包边界
+│       ├── __main__.py                                                                              python -m clearact_lite 入口
+│       ├── application.py                                                                           CLI/网页统一入口、记录、交付、预览、分支、恢复与停止
+│       ├── bootstrap.py                                                                             唯一装配点，十五项工具及子执行器绑定
+│       ├── cli.py                                                                                   网页或 CLI 启动、执行、停止与记录展示
+│       └── settings.py                                                                              唯一配置、模型预算锚点身份、压缩与续跑设置
+├── .gitignore                                                                                       排除私有配置、任务记录、测试现场和缓存
+├── AGENTS.md                                                                                        开发约定及本轮用户明确授权的容量/子代理扩展
+├── README.md                                                                                        安装、启动、能力用法、配置与验收入口
+├── clearact.cmd                                                                                     双击启动工作台并打开浏览器，失败保留窗口
+└── pyproject.toml                                                                                   十项运行依赖、静态资源打包、pytest/Ruff 配置

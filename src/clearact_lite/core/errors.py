@@ -12,3 +12,7 @@ class ContextLimit(ClearActError):
 
 class WorkspaceConflict(ClearActError):
     """A file changed after the recorded operation."""
+
+
+class RecoveryExhausted(ClearActError):
+    """Bounded diagnosis could not make progress; preserve a resumable checkpoint."""

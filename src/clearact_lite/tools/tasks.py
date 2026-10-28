@@ -1,20 +1,38 @@
 import json
+from dataclasses import asdict
 
-from clearact_lite.core.contracts import ToolResult, ToolSpec
+from clearact_lite.core.contracts import InterfaceContract, ToolResult, ToolSpec
 from clearact_lite.core.ports import DelegationPort, ToolContext
 from clearact_lite.tools.files import object_schema
+
+INTERFACE_SCHEMA = object_schema(
+    {
+        "name": {"type": "string", "minLength": 1},
+        "provider_task": {"type": "string", "minLength": 1},
+        "signature": {"type": "string", "minLength": 1},
+        "consumers": {"type": "array", "items": {"type": "string"}},
+        "invariants": {"type": "string"},
+    },
+    ["name", "provider_task", "signature"],
+)
 
 
 class PlanTask:
     spec = ToolSpec(
         "task_plan",
-        "Save a model-authored file plan before delegating multi-file work. Specify every file's "
-        "responsibility, shared interfaces, and task dependencies. Optional task tools selects child capabilities; "
+        "Plan bounded implementation increments for a multi-part deliverable. Specify file responsibilities, "
+        "shared interfaces (exports, arguments/returns, units, ownership and callers), dependencies, "
+        "focused verification and each increment's concrete deliverable. The first increment is a "
+        "minimal runnable core, followed by separate content/assets/polish work. Do not assign the whole "
+        "application to one child. Dependent increments may edit the same file. "
+        "Optional task tools selects child capabilities; "
         "default is file tools/history/checkpoint. Add browser/MCP tools explicitly when needed. "
+        "Optional contracts declares named provider/consumer interfaces without changing dependencies. "
         "Parent integrates/tests/delivers the complete project. Replacing a plan preserves older versions.",
         object_schema(
             {
                 "interfaces": {"type": "string"},
+                "contracts": {"type": "array", "items": INTERFACE_SCHEMA},
                 "tasks": {
                     "type": "array",
                     "minItems": 1,
@@ -22,6 +40,7 @@ class PlanTask:
                         {
                             "id": {"type": "string", "minLength": 1},
                             "instruction": {"type": "string", "minLength": 1},
+                            "deliverable": {"type": "string"},
                             "files": {
                                 "type": "array",
                                 "minItems": 1,
@@ -51,7 +70,8 @@ class DelegateTask:
     spec = ToolSpec(
         "agent_task",
         "Execute a planned task in an independent child context, serially on the local model. "
-        "Parent receives a short report and file hashes; full child messages stay in its branch. "
+        "Parent receives interfaces, unresolved work, file changes and report references; "
+        "full child messages stay in its branch. "
         "You must integrate/test the project yourself. Child may continue from existing files after interruption.",
         object_schema({"task_id": {"type": "string"}}, ["task_id"]),
     )
@@ -68,10 +88,31 @@ class SaveCheckpoint:
     spec = ToolSpec(
         "task_checkpoint",
         "Save a concise working checkpoint: current state, unresolved work and next steps. "
-        "Preserved through context compaction. This is model-authored state, not verified task acceptance.",
-        object_schema({"state": {"type": "string"}, "next_steps": {"type": "string"}}, ["state", "next_steps"]),
+        "Optional interfaces records actual exported signatures using the plan contract shape; unresolved lists "
+        "remaining work. Preserved through context compaction. Model-authored, not verified acceptance.",
+        object_schema(
+            {
+                "state": {"type": "string"},
+                "next_steps": {"type": "string"},
+                "problem": {"type": "string"},
+                "changed_method": {"type": "string"},
+                "success_criterion": {"type": "string"},
+                "resolved": {"type": "boolean"},
+                "interfaces": {"type": "array", "items": INTERFACE_SCHEMA},
+                "unresolved": {"type": "array", "items": {"type": "string"}},
+                "evidence_event_ids": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+            },
+            ["state", "next_steps"],
+        ),
     )
 
     async def execute(self, arguments: dict, context: ToolContext) -> ToolResult:
-        event = context.emit("task.checkpoint", {**arguments, "source": "model", "verified": False})
+        value = dict(arguments)
+        if "interfaces" in value:
+            interfaces = tuple(InterfaceContract.from_dict(item) for item in value["interfaces"])
+            assignments = [e for e in context.store.events(context.branch_id) if e.kind == "task.assignment"]
+            if assignments and any(item.provider_task != assignments[-1].payload["task"]["id"] for item in interfaces):
+                raise ValueError("Checkpoint interface provider must be the assigned task")
+            value["interfaces"] = [asdict(item) for item in interfaces]
+        event = context.emit("task.checkpoint", {**value, "source": "model", "verified": False})
         return ToolResult(f"Working checkpoint recorded at event {event.id}")

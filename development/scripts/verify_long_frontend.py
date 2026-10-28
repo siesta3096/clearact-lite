@@ -30,7 +30,7 @@ class LongProvider:
             if self.parent == 1:
                 return ModelReply(Message("assistant", "未完成片段"), "length", Usage(100, 10), {"induced": True})
             actions = [
-                ("file_write", {"path": "fixture.txt", "text": "归档样例" * 4000}),
+                ("file_write", {"path": "fixture.txt", "text": "归档样例" * 1000}),
                 (
                     "task_plan",
                     {
@@ -61,7 +61,12 @@ class LongProvider:
                 return ModelReply(Message("assistant", "已整合，记录完整保留"), "stop", Usage(100, 10))
             action = actions[index]
             call_id = f"parent-{self.parent}"
-        return ModelReply(Message("assistant", tool_calls=(ToolCall(call_id, *action),)), "tool_calls", Usage(100, 10))
+        # Deliberately simulate near-capacity reported input. These are protocol
+        # fixture values, not a claim about an actual model/tokenizer.
+        usage = Usage(
+            24000 if not is_child and self.parent >= 3 else 100, 4000 if not is_child and self.parent == 2 else 10
+        )
+        return ModelReply(Message("assistant", tool_calls=(ToolCall(call_id, *action),)), "tool_calls", usage)
 
 
 async def main():

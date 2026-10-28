@@ -1,6 +1,6 @@
 import json
 
-from clearact_lite.core.contracts import ToolResult, ToolSpec
+from clearact_lite.core.contracts import TextRange, ToolResult, ToolSpec
 from clearact_lite.core.ports import ToolContext
 from clearact_lite.storage.snapshots import digest, workspace_path
 
@@ -12,7 +12,8 @@ def object_schema(properties: dict, required: list[str]) -> dict:
 class ReadFile:
     spec = ToolSpec(
         "file_read",
-        "Read UTF-8 text in character ranges; offset starts at zero.",
+        "Read UTF-8 text. offset/limit count characters, not lines; offset starts at zero. "
+        "Use returned next_offset for the next non-overlapping range; eof=true means end of text.",
         object_schema(
             {
                 "path": {"type": "string"},
@@ -27,7 +28,7 @@ class ReadFile:
         path = workspace_path(context.workspace, arguments["path"])
         content = path.read_text(encoding="utf-8")
         offset, limit = arguments.get("offset", 0), arguments.get("limit", 6000)
-        return ToolResult(f"characters={len(content)}; offset={offset}\n" + content[offset : offset + limit])
+        return ToolResult(TextRange.read(content, offset, limit).to_tool_text())
 
 
 class WriteFile:
@@ -81,7 +82,10 @@ class ListFiles:
 
     async def execute(self, arguments: dict, context: ToolContext) -> ToolResult:
         value = arguments.get("path", ".")
-        path = context.workspace if value in {"", "."} else workspace_path(context.workspace, value)
+        candidate = (context.workspace / value).resolve()
+        path = (
+            context.workspace if candidate == context.workspace.resolve() else workspace_path(context.workspace, value)
+        )
         entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.casefold()))
         entries = [p for p in entries if p.name != ".clearact"]
         offset, limit = arguments.get("offset", 0), arguments.get("limit", 100)
@@ -109,6 +113,8 @@ class EditFile:
         "file_edit",
         "Append a manageable chunk or replace one exact text occurrence without rewriting the whole file. "
         "Use mode append with expected_bytes (UTF-8 bytes from file_list or this tool). "
+        "Append adds bytes at EOF, not inside a closed HTML/script tag; use a separate source file or replace "
+        "at the intended insertion point when needed. "
         "Use replace with old_text (must occur exactly once). Each complete call saves a snapshot. "
         "Return bytes/hash for the next chunk; truncated calls are never applied.",
         object_schema(

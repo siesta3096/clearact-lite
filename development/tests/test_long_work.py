@@ -32,6 +32,7 @@ def test_90_percent_compaction_preserves_requirements_raw_calls_and_fork(tmp_pat
             ).to_dict(),
         )
         emit("message", Message("tool", "written", tool_call_id="big").to_dict())
+        emit("message", Message("assistant", "Source completed; next integrate both endings").to_dict())
         emit("task.checkpoint", {"state": "source implemented", "next_steps": "Test both endings", "verified": False})
         original = app.events(branch)
         fork = app.fork(branch)
@@ -243,7 +244,7 @@ def test_stop_propagates_from_child_and_usage_is_not_reported_as_zero(tmp_path):
 
 def test_cumulative_usage_does_not_become_context_occupancy(tmp_path):
     provider = ScriptedProvider([reply("ok", usage=Usage(30000, 1)) for _ in range(5)])
-    app = build_application(Settings(tmp_path), provider)
+    app = build_application(Settings(tmp_path, context_tokens=100096), provider)
     try:
         branch = None
         for _ in range(5):

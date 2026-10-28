@@ -50,6 +50,11 @@ class SettingsRequest(RequestModel):
     compact_threshold: float = Field(default=0.9, gt=0, lt=1)
     compact_target: float = Field(default=0.6, gt=0, lt=1)
     auto_continue: bool = True
+    repeated_failure_limit: int = Field(default=2, ge=1)
+    recovery_blocked_rounds: int = Field(default=2, ge=1)
+    recovery_timeout_seconds: float = Field(default=600, gt=0)
+    recovery_output_tokens: int = Field(default=32768, ge=1)
+    unchanged_result_limit: int = Field(default=4, ge=2)
 
     @field_validator("base_url")
     @classmethod

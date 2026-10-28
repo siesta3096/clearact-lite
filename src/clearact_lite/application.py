@@ -35,6 +35,7 @@ class Application:
                 settings.context_tokens,
                 settings.max_output_tokens,
                 settings.tool_result_chars,
+                settings.tokenizer_key,
             ),
             settings.run_timeout_seconds,
             settings,
@@ -188,6 +189,7 @@ class Application:
             settings.context_tokens,
             settings.max_output_tokens,
             settings.tool_result_chars,
+            settings.tokenizer_key,
         )
         self.runner.timeout_seconds = settings.run_timeout_seconds
         self.runner.settings = settings

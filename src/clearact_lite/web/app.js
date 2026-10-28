@@ -32,6 +32,10 @@ function selectedRunning() { return running() && ui.state.active_branch === ui.b
 function showStage(event) {
   const labels = { "run.started": "正在准备任务", "model.started": "模型正在处理", "tool.started": "正在执行：" + (toolNames[event.payload.name] || event.payload.name), "file.written": "文件已写入，快照已保存", "run.ended": statuses[event.payload.status] || "本轮结束" };
   Object.assign(labels, { "context.compacted": "上下文已压缩，完整历史保留", "capacity.continuation": "已保存容量断点，继续请求模型", "agent.started": `子代理正在执行：${event.payload.task_id || ""}`, "agent.finished": "子代理已返回，主代理继续整合" });
+  Object.assign(labels, { "reliability.diagnosing": "失败重复，正在诊断", "reliability.blocked": "已阻止原样失败的操作", "reliability.paused": "补救预算已用完，断点已保存", "reliability.resolved": "已记录修复证据", "reliability.resumed": "按用户要求继续诊断" });
+  if (event.kind === "tool.started" && event.payload.executed === false) labels[event.kind] = "操作未执行：需要改变方法";
+  if (event.kind === "reliability.diagnosing" && event.payload.reason === "unchanged_successful_observation") labels[event.kind] = "检查结果反复不变，需要改变方法";
+  if (event.kind === "run.ended" && event.payload.error?.startsWith("Recovery paused:")) labels[event.kind] = "无法继续推进，断点已保存";
   if (labels[event.kind]) $("#stage-label").textContent = labels[event.kind];
   if (event.kind === "agent.progress") $("#stage-label").textContent = `子代理 ${event.payload.task_id}：${toolNames[event.payload.name] || event.payload.kind}`;
 }
@@ -221,7 +225,8 @@ function renderRecords(report) {
   actions.replaceChildren();
   changes.replaceChildren();
   const labels = { "run.started": "开始运行", "run.ended": "本轮结果", "model.started": "请求模型", "model.returned": "模型响应与用量", "context.projected": "上下文整理", "file.written": "文件已写入", "file.restored": "文件已恢复", "tool.started": "工具开始", "tool.returned": "工具返回", "tool.exception": "工具异常", "attachment.linked": "本轮附件", "browser.manual": "用户操作浏览器", "browser.action": "模型操作浏览器" };
-  Object.assign(labels, { "context.compacted": "上下文已压缩", "capacity.continuation": "容量断点续跑", "task.plan": "文件与任务计划", "task.checkpoint": "工作断点", "agent.started": "子代理开始", "agent.finished": "子代理结果" });
+  Object.assign(labels, { "context.compacted": "上下文已压缩", "capacity.continuation": "容量断点续跑", "task.plan": "文件与任务计划", "task.checkpoint": "工作断点", "task.handoff": "接口与未完成事项交接", "browser.diagnostic": "浏览器原始错误", "agent.started": "子代理开始", "agent.finished": "子代理结果" });
+  Object.assign(labels, { "reliability.updated": "问题与补救预算", "reliability.diagnosing": "诊断问题", "reliability.blocked": "无变化失败已拦截", "reliability.paused": "保存断点并暂停", "reliability.resolved": "修复证据", "reliability.resumed": "用户要求续跑" });
   for (const event of [...report.events, ...(report.child_changes || [])].sort((a,b) => a.id-b.id)) {
     if (!(event.kind in labels)) continue;
     const detail = el("details", "record");
@@ -276,7 +281,7 @@ async function loadReport() {
   renderRecords(report);
   if (!selectedRunning()) $("#live-message").classList.add("hidden");
   else {
-    const latestStage = report.events.findLast((e) => ["run.started", "model.started", "tool.started", "file.written"].includes(e.kind));
+    const latestStage = report.events.findLast((e) => ["run.started", "model.started", "tool.started", "file.written", "reliability.diagnosing", "reliability.blocked", "reliability.paused"].includes(e.kind));
     if (latestStage) showStage(latestStage);
   }
   setButtons();

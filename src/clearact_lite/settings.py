@@ -24,6 +24,15 @@ class Settings:
     compact_threshold: float = 0.9
     compact_target: float = 0.6
     auto_continue: bool = True
+    repeated_failure_limit: int = 2
+    recovery_blocked_rounds: int = 2
+    recovery_timeout_seconds: float = 600
+    recovery_output_tokens: int = 32768
+    unchanged_result_limit: int = 4
+
+    @property
+    def tokenizer_key(self) -> str:
+        return f"{self.base_url.rstrip('/')}|{self.model}|{self.reasoning_effort}"
 
     def __post_init__(self) -> None:
         if not 0 < self.max_output_tokens < self.context_tokens:
@@ -34,6 +43,20 @@ class Settings:
             raise ValueError("Timeouts must be positive")
         if not 0 < self.compact_target < self.compact_threshold < 1:
             raise ValueError("Compaction target must be below its threshold, both between zero and one")
+        if (
+            min(
+                self.repeated_failure_limit,
+                self.recovery_blocked_rounds,
+                self.recovery_output_tokens,
+                self.unchanged_result_limit,
+            )
+            < 1
+        ):
+            raise ValueError("Recovery budgets must be positive")
+        if self.recovery_timeout_seconds <= 0:
+            raise ValueError("Recovery timeout must be positive")
+        if self.unchanged_result_limit < 2:
+            raise ValueError("Unchanged result limit must be at least two")
 
     @classmethod
     def from_env(cls, workspace: Path) -> Settings:

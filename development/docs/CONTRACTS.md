@@ -1,8 +1,47 @@
 # 统一接口 v1
 
+## 2026-10-28 浏览器原始证据与结构化交接
+
+- 保持 `schema_version=1` 和既有 Application/Port/ToolResult 签名。新增公共 DTO 统一在 `core/contracts.py`：BrowserDiagnostic、BrowserPageState、InterfaceContract、HandoffFile、TaskHandoff；不把 Playwright 类型传到上层。
+- 浏览器状态新增 `diagnostics`，包含 session_id/document_id、document_ready_state、navigation_status、errors 和 earlier_errors_omitted。`ready=true`只表示会话已打开；DOMContentLoaded/load 不表示业务已成功。主文档导航开始时清空当前文档错误，跨标签分别保留；旧事件不删除。
+- 页面创建时被动监听 pageerror、console error、requestfailed、HTTP >=400，保存 `browser.diagnostic` 和 `.clearact/browser/diagnostics.jsonl`。完整消息/stack留原记录，回执每条message最多600字、不携带完整stack、最多8条；内存最多64种当前文档错误。重复错误继续记录全部发生次数，但回执保留首次引用，避免事件编号变化伪装成进展。历史索引最多保留4条观察，明确不是当前页面健康判定。
+- BrowserDiagnostic 提供原始 event_id、session/document/sequence、类型、URL、HTTP状态、资源类型和原生console位置（行列为零基），pageerror保留原生stack。结构化URL去掉查询、fragment及userinfo；错误正文和stack保留原文，不承诺全文脱敏。用户手动操作没有所属分支时仅写JSONL。工具异常仍返回原异常，额外附上已捕获diagnostics，无自动检查、注入错误监听、重载或重试。
+- `task_plan.contracts=[]` 可选，单条InterfaceContract为 `name/provider_task/signature/consumers=[]/invariants=""`。名称唯一、提供者和消费者引用有效任务ID；不插入依赖、不自动调度。旧interfaces文本与旧计划保持有效。
+- `task_checkpoint.interfaces` 使用同一InterfaceContract结构；子任务只能声明自身为提供者。`unresolved` 可选字符串数组。全部保留模型来源和verified=false。交接取本分支最近显式interfaces和unresolved；后续普通/运行时断点不抹掉它们，显式空数组可清除。每项来源断点分别记录坐标；计划回退明确标为interface_source=plan，不能称为实际验证接口。
+- `task.handoff` 保存完整TaskHandoff：任务/分支、完整报告run.ended坐标、接口来源、未完成项、断点及存在的证据坐标。此处证据ID有效只表示事件存在，不表示证明成立。compact view把未完成项限制到850字、接口约1300字（单签名400、约束200），证据最多12个，截断标记context_excerpt。报告保留头1000/尾500字，完整原文仍可history_read。父回执保留result/files/working_state等旧键。
+- HandoffFile 描述分配文件的最终存在性/字节/哈希，并增加before_sha256/changed；该哈希差异不证明语义正确，不覆盖命令/MCP的全部外部副作用。后续任务接收的文件另附current_sha256/matches_handoff，版本不符即旧报告可能过时。
+- 依赖交接保留dependency_handoffs；共享分配文件或contracts消费者另外收到related_handoffs，标明basis，不改变任务依赖和完成状态。每个任务使用当前计划的最近一次结果，避免以旧成功掩盖后续失败。当前版本哈希在交接时读取一次，不添加模型调用或文件轮询。
+- `task.assignment.handoff_branches` 明确授予本次交接来源分支的只读history_read访问，覆盖完整报告/stack取回；不允许任意兄弟或父分支读取。主代理本来已有委派子分支访问。历史索引保留交接及原文坐标，前端给新事件提供中文标签；旧历史无这些字段时仍可读取。
+
+## 2026-10-27 可靠性兼容增量
+
+- 后续检查预算补充：RecoveryState增加默认空observations和started_event_id=0；context_view只向模型投影重复观察，完整计数仍持久化。Settings/SettingsRequest新增unchanged_result_limit=4、最小2。blocked_rounds兼容字段同时计入不变观察后的无进展诊断；并非所有计入项都表示实际动作被阻止。语义见[补充说明](changes/2026-10-27-check-budget.md)。
+
+- `ToolResult.error_kind="unknown"`为可选增量，错误类别validation/deterministic/transient/unknown/blocked不等于副作用结论。`tool.started/returned.executed=false`明确本次没有执行。原ToolResult(content,is_error)和HTTP输入保留兼容，schema_version仍为1。
+- `core.ToolFact`统一成功调用的有界参数、结果摘录、call_event_id/result_event_id/branch_id和truncated；归档和父子交接复用。截断事实不代替原文，可用history_read取回。
+- `core.RecoveryState`统一started_at、失败签名/内容版本/错误/原文坐标、blocked_rounds、输出预算及估算标志、paused/reason。`reliability.updated`持久化完整状态；diagnosing/blocked/paused/resolved/resumed记录状态转换。不新增数据库表或另一套HTTP运行结果。
+- `RunResult.status=stopped`且error以`Recovery paused:`开头表示有界补救暂停；区别于用户取消。子任务此状态交回主代理，用户取消仍向上传递。新用户轮次可打开新预算，自动容量续跑及同计划子任务重开保留预算。
+- `Settings`和`SettingsRequest`共用默认repeated_failure_limit=2、recovery_blocked_rounds=2、recovery_timeout_seconds=600、recovery_output_tokens=32768。已有保存设置缺字段时使用默认值。前端保留这些设置，尚无专用控件。
+- `task_checkpoint`保留state/next_steps必填，新增可选problem/changed_method/success_criterion/resolved/evidence_event_ids。恢复声明只接受问题后、当前断点前的成功执行回执引用；这是模型证据声明，不是独立验收。未知模型输出使用UTF-8字节上界并标估算，RunResult.usage仍保留null。
+- `agent.finished.working_state`增加同一成功事实、RecoveryState、最近断点和完整报告坐标。父子工具签名、Application公开方法及ModelProvider不改变；Runner.run仅增加内部可选allow_recovery_resume参数。
+
+以下各日期条目反映当时实现，当前对无变化失败的有界处理以本节及RULES为准。
+
+## 2026-10-23 容量与工作状态修复
+
+- `core.TextRange` 统一文件与历史的字符分页结果。`file_read/history_read` 保留旧参数和结果开头 `characters/offset`，增加 `next_offset/eof`，到末尾或越界时返回 `next_offset=null; eof=true`。坐标仍是字符数，非行号或UTF-8字节数；不自动读取下一页、不拦截重复调用。
+
+- `core.RequestFootprint` 保存 `model_key/tools_hash/message_hashes`。`context.projected.request_footprint` 与 `model.returned.context_event_id/response_message_hash` 关联一次请求和实报用量；哈希不包含密钥，历史记录不修改。
+- `context.budget` 优先使用同模型、同工具定义、同完整消息前缀的服务实报输入，加新增消息的保守界限及余量；首个新增 assistant 可用对应实报输出估算。没有匹配或用量未知时使用字节保守界限，未知不填零。一次容量续跑提示消失时保留其已测成本。
+- `ContextBuilder` 末尾新增可选 `model_key=""`，旧构造调用兼容。`Settings.tokenizer_key` 是兼容锚点，不是精确 tokenizer。
+- `context.compacted` 增加 `index_as_of/retained_message_ids/target_reached/working_set_preserved`。保留最近完整事务和最近成功写入所属完整事务；索引固定到归档时点，同一分支显式文件恢复使索引刷新到恢复事件。没有归档时也向该分支下次请求提供恢复事实；跨子分支恢复对父上下文同步尚未验证。60% 为软目标，必要内容超出总窗口仍停止。
+- 文件写入/恢复事件新增可选 `bytes/text_tail`，文本尾部最多1200字；删除恢复的值为 null。完整正文继续在原始消息和快照中保存。
+- `PlannedTask.deliverable` 可选，默认空字符串，旧计划可读。`task.assignment` 保存子代理实际分配；子请求增加依赖任务的短报告和文件坐标。计划及子结果增加 `ready_task_ids`，子结果增加 `pending_task_ids/deliverable`；不代表验收通过，不自动执行下一项。
+- `file_list` 接受工作区绝对根目录和 `.`；已有工作区及记录目录保护不变。`ModelProvider`、Application 和 HTTP v1 签名未改变，schema_version 仍为 1。
+
 ## 2026-10-22 长任务扩展
 
-以下增量覆盖后文“当前十一项工具”和旧容量停止行为的描述；既有调用保持兼容，schema_version 仍为 1。
+以下增量保留既有调用兼容性，schema_version 仍为 1；容量估算与工作状态以本页2026-10-23修复说明为准。
 
 - core 新增 PlannedFile / PlannedTask / TaskPlan；文件职责、任务依赖和共享接口使用同一数据定义。ports 新增 DelegationPort.plan/execute。
 - 工具共十五项，新增 file_edit、task_plan、agent_task、task_checkpoint。history_read 新增可选 branch_id（仅自己的已委派子代理）；省略 event_id 可分页列事件目录。读取 assistant 工具调用时返回完整参数 JSON。
@@ -54,6 +93,9 @@
 | `Event` | id、branch_id、kind、payload、UTC created_at、schema_version |
 | `RunResult` | 分支、运行状态、回答、调用次数、用量、耗时、错误和 schema_version |
 | `BranchInfo` | id、parent_id、title、status、updated_at；任务列表使用，不改变消息契约 |
+| `PlannedFile / PlannedTask / TaskPlan` | 文件职责、任务依赖、共享接口、可选tools和deliverable；模型保存的统一计划 |
+| `RequestFootprint` | model_key、tools_hash、message_hashes；用于匹配实报输入锚点，不是tokenizer |
+| `TextRange` | total_characters、offset、next_offset、eof、text；文件/历史统一字符分页结果 |
 
 `finished` 表示模型以正常结束标记结束；其他状态为 `stopped`、`failed`、`context_limit`、`output_limit`。文件登记和任务验收不使用这一状态混合表示。
 
@@ -72,7 +114,7 @@
 | `BrowserPort` | state/control/screenshot；页面和工具共享一个实例，不暴露 Playwright 类型给上层 |
 | `MCPPort` | overview/connect/list_tools/call/disconnect/configure；SDK 类型留在 integrations 中 |
 
-新增工具只需实现 `Tool` 并在装配点注册，不改 Runner。当前十一项：`file_list`、`file_read`、`file_write`、`document_read`、`history_read`、`artifact_register`、`browser_open`、`browser_read`、`browser_action`、`mcp_list_tools`、`mcp_call_tool`。远端 MCP Schema 不展开成每次请求的固定工具集合，而由 mcp_list_tools 按需分页获取，mcp_call_tool 在边缘校验并转换为统一 ToolResult。
+新增工具只需实现 `Tool` 并在装配点注册，不改 Runner。当前十五项：`file_list`、`file_read`、`file_write`、`file_edit`、`document_read`、`history_read`、`artifact_register`、`task_plan`、`agent_task`、`task_checkpoint`、`browser_open`、`browser_read`、`browser_action`、`mcp_list_tools`、`mcp_call_tool`。远端 MCP Schema 不展开成每次请求的固定工具集合，而由 mcp_list_tools 按需分页获取，mcp_call_tool 在边缘校验并转换为统一 ToolResult。
 
 附件没有另造一套 Message：`attachment.linked` 保存原始输入和文件元信息，现有 user 消息附加简短路径引用。模型按需读取，完整文件不自动塞入上下文。HTTP 用 Pydantic DTO，内部仍使用既有契约；MCP 配置归一化在 integrations/config.py。模型/工具消息、事件和 RunResult 的 schema_version 仍为 1。
 

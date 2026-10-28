@@ -1,5 +1,7 @@
 # 开发与验收资料
 
+当前容量、归档与任务分配修复见 [2026-10-23-context-repair.md](docs/changes/2026-10-23-context-repair.md)。`scripts/verify_context_repair.py` 只重放旧失败现场，不调用模型；真实游戏、协议替身、全部失败和用量分别保存。
+
 长任务批次见 [2026-10-22-long-work.md](docs/changes/2026-10-22-long-work.md)。`scripts/evaluate_long_work.py` 保存真实本地参数组合、累计 token/单次窗口边界及完整原始游戏任务；`scripts/verify_long_frontend.py` 验证压缩、续跑、子记录、父子恢复的真实 Edge 界面，但模型是协议替身。各次现场独立，替身成功不算真实模型验收。
 
 本目录集中保存测试、真实运行痕迹、失败和用量，以及每轮修改说明、解释图和文件树。Agent 本体在项目根目录的 `src/clearact_lite/`，运行时不依赖本目录。
@@ -38,3 +40,7 @@ data/     → development/records/
 实际记录、快照、原始报告保留搬迁前字节。其中绝对路径及首轮源码哈希指向当时位置，使用清单查找搬迁后的文件。重定位测试脚本及活跃文档中的路径不算重写历史测试结果。
 
 原始运行记录、缓存由根 `.gitignore` 排除；测试代码、脚本和修改文档可随代码维护。验证命令见项目根 [README](../README.md)。
+
+2026-10-25：[CSGO质量目标FPS真实尝试](docs/changes/2026-10-25-fps-attempt.md)，Agent本体不改，独立结果与待确认方案单列。
+
+2026-10-25：[通用可靠性计划（待确认）](docs/RELIABILITY_PLAN.md)：按需验证、主代理审查、有界补救与无效绕圈止损；当前仅方案，未接入运行时。

@@ -70,6 +70,8 @@ class FileSnapshots:
             "after_hash": digest(after),
             "diff": diff,
             "binary": not text_preview,
+            "bytes": len(data),
+            "text_tail": data.decode("utf-8")[-1200:] if text_preview else None,
         }
         prepared = emit("file.write_prepared", change)
         atomic_write(path, after)
@@ -90,4 +92,14 @@ class FileSnapshots:
             path.unlink()
         else:
             atomic_write(path, before)
-        emit("file.restored", {"path": change["path"], "restored_hash": before_hash})
+        emit(
+            "file.restored",
+            {
+                "path": change["path"],
+                "restored_hash": before_hash,
+                "bytes": len(before) if before is not None else None,
+                "text_tail": before.decode("utf-8", errors="replace")[-1200:]
+                if before is not None and not change.get("binary")
+                else None,
+            },
+        )

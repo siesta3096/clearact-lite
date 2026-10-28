@@ -8,6 +8,7 @@ from urllib.request import url2pathname
 from uuid import uuid4
 
 from clearact_lite.core.ports import SnapshotStore, ToolContext
+from clearact_lite.integrations.browser_diagnostics import BrowserDiagnostics
 from clearact_lite.storage.snapshots import workspace_path
 
 ELEMENTS = "a[href],button,input:not([type=hidden]),textarea,select,[role=button],[contenteditable=true]"
@@ -21,6 +22,12 @@ class BrowserManager:
         self.playwright = self.browser = self.context = self.page = None
         self.lock = asyncio.Lock()
         self.audit = workspace / ".clearact" / "browser" / "events.jsonl"
+        self.diagnostics = BrowserDiagnostics(workspace)
+        self._pending_context = None
+
+    def _page_opened(self, page):
+        self.page = page
+        self.diagnostics.attach(page, self._pending_context)
 
     @property
     def is_open(self) -> bool:
@@ -43,7 +50,7 @@ class BrowserManager:
                     viewport={"width": 1280, "height": 820},
                     accept_downloads=True,
                 )
-                self.context.on("page", lambda page: setattr(self, "page", page))
+                self.context.on("page", self._page_opened)
                 self.page = await self.context.new_page()
                 self.page.set_default_timeout(15000)
             except BaseException:
@@ -63,6 +70,7 @@ class BrowserManager:
             "title": await page.title(),
             "viewport": page.viewport_size,
             "tabs": [{"index": i, "url": p.url, "active": p == page} for i, p in enumerate(self.context.pages)],
+            "diagnostics": self.diagnostics.state(page).context_view(),
         }
 
     async def _view(self, arguments: dict) -> dict:
@@ -131,6 +139,7 @@ class BrowserManager:
     async def control(self, arguments: dict, context: ToolContext | None = None) -> dict:
         async with self.lock:
             action = arguments["action"]
+            self._pending_context = context
             try:
                 async with asyncio.timeout(45):
                     if action == "close":
@@ -138,12 +147,27 @@ class BrowserManager:
                         result = {"ready": False}
                     else:
                         await self._ensure()
+                        self.diagnostics.set_owner(self.page, context)
                         result = await self._perform(action, arguments, context)
+                        self.diagnostics.set_owner(self.page, context)
                 self._record(arguments, result, context)
                 return result
             except BaseException as exc:
-                self._record(arguments, {"error": type(exc).__name__, "outcome": "interrupted_or_failed"}, context)
+                diagnostic = self.diagnostics.state(self.page).context_view()
+                exc.browser_diagnostics = diagnostic
+                self._record(
+                    arguments,
+                    {
+                        "error": type(exc).__name__,
+                        "detail": str(exc),
+                        "outcome": "interrupted_or_failed",
+                        "diagnostics": diagnostic,
+                    },
+                    context,
+                )
                 raise
+            finally:
+                self._pending_context = None
 
     async def _perform(self, action: str, args: dict, context: ToolContext | None) -> dict:
         page = self.page
@@ -239,6 +263,7 @@ class BrowserManager:
             return await self.page.screenshot(type="jpeg", quality=80, timeout=5000)
 
     async def aclose(self) -> None:
+        self.diagnostics.close()
         try:
             if self.browser is not None:
                 await self.browser.close()
