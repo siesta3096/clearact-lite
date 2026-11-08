@@ -11,7 +11,8 @@ from clearact_lite.runtime.runner import ExecutionContext, Runner
 from clearact_lite.storage.snapshots import digest, workspace_path
 from clearact_lite.tools.registry import ToolRegistry
 
-FILE_TOOLS = {"file_list", "file_read", "file_write", "file_edit", "document_read", "history_read", "task_checkpoint"}
+HANDOFF_TOOLS = {"history_read", "task_checkpoint"}
+FILE_TOOLS = {"file_list", "file_read", "file_write", "file_edit", "document_read"}
 
 
 def file_receipt(workspace, name, before=None):
@@ -140,6 +141,12 @@ class DelegationManager:
             }
             (handoffs if producer in task.depends_on else related).append(value)
         before_files = {f.path: file_receipt(context.workspace, f.path)["sha256"] for f in task.files}
+        available = (set(task.tools) if task.tools is not None else FILE_TOOLS) | HANDOFF_TOOLS
+        tools = []
+        for tool in self.runner.registry.tools.values():
+            if tool.spec.name not in available or tool.spec.name in {"task_plan", "agent_task"}:
+                continue
+            tools.append(AssignedFileTool(tool, assigned) if tool.spec.name in {"file_write", "file_edit"} else tool)
         branch = context.store.fork()
 
         def emit(kind, payload):
@@ -177,6 +184,7 @@ class DelegationManager:
                 "plan_event_id": plan_event.id,
                 "task": asdict(task),
                 "handoff_branches": [h["branch_id"] for h in handoffs + related],
+                "effective_tools": sorted(tool.spec.name for tool in tools),
             },
         )
         context.emit(
@@ -188,12 +196,6 @@ class DelegationManager:
                 "files": [asdict(f) for f in task.files],
             },
         )
-        tools = []
-        available = set(task.tools) if task.tools is not None else FILE_TOOLS
-        for tool in self.runner.registry.tools.values():
-            if tool.spec.name not in available or tool.spec.name in {"task_plan", "agent_task"}:
-                continue
-            tools.append(AssignedFileTool(tool, assigned) if tool.spec.name in {"file_write", "file_edit"} else tool)
         settings = self.runner.settings
         child = Runner(
             self.runner.provider,
@@ -226,6 +228,7 @@ class DelegationManager:
             "reports and file coordinates, not new project-wide work. Project-wide browser acceptance and delivery are "
             "the parent's responsibility unless your assigned task explicitly includes them and provides those tools. "
             "Use manageable complete chunks. Report actual changes, checks, unresolved work concisely. "
+            "history_read and task_checkpoint are always available, in addition to the selected execution tools. "
             "For interface handoffs, task_checkpoint can record actual interfaces and unresolved items. "
             "Planned contracts are intentions, not proof of exports. Check file versions before relying on reports; "
             "history_read can read handed-off branches using their branch_id and event_id. "

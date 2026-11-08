@@ -1,5 +1,12 @@
 # 统一接口 v1
 
+## 2026-11-08 子代理基础交接能力
+
+- `PlannedTask.tools`只选择执行工具；省略或null仍提供默认文件/文档工具，空数组不提供可选执行工具。`history_read`和`task_checkpoint`作为基础交接能力始终加入，包括显式工具清单未列出它们的情况。旧计划和既有字段保持可读；这是显式清单语义的兼容扩展，不新增数据结构或工具。
+- `task.assignment.effective_tools`新增可选字符串数组，记录实际交给子Runner的工具名，与模型写的`task.tools`分别保留。旧记录缺字段时不能倒推为当前工具集合；只在新委派时按新语义计算。
+- 历史读取仍限本分支、自己委派的子分支及明确交接的来源分支；基础能力可用不扩大分支访问范围。文件写入仍限已分配路径，未选的浏览器/MCP/文件工具不自动加入。
+- 交接继续使用既有TaskHandoff、InterfaceContract、HandoffFile和原文坐标，模型决定是否声明接口或补读全文。不强制填表、自动委派、额外调用模型、执行检查或重放任务。计划说明建议明确共享入口整合负责人；不硬性禁止多个增量修改同一文件。
+
 ## 2026-10-28 浏览器原始证据与结构化交接
 
 - 保持 `schema_version=1` 和既有 Application/Port/ToolResult 签名。新增公共 DTO 统一在 `core/contracts.py`：BrowserDiagnostic、BrowserPageState、InterfaceContract、HandoffFile、TaskHandoff；不把 Playwright 类型传到上层。

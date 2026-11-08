@@ -25,8 +25,11 @@ class PlanTask:
         "focused verification and each increment's concrete deliverable. The first increment is a "
         "minimal runnable core, followed by separate content/assets/polish work. Do not assign the whole "
         "application to one child. Dependent increments may edit the same file. "
-        "Optional task tools selects child capabilities; "
-        "default is file tools/history/checkpoint. Add browser/MCP tools explicitly when needed. "
+        "Optional task tools selects execution capabilities; null/omitted defaults to file/document tools, "
+        "and an empty list selects none. history_read/task_checkpoint are always included. "
+        "Add browser/MCP tools explicitly when needed. "
+        "Identify interface providers/consumers and the owner of shared entry-point integration; "
+        "prefer separate module files to repeated edits of the shared entry point. "
         "Optional contracts declares named provider/consumer interfaces without changing dependencies. "
         "Parent integrates/tests/delivers the complete project. Replacing a plan preserves older versions.",
         object_schema(
@@ -49,7 +52,11 @@ class PlanTask:
                                 ),
                             },
                             "depends_on": {"type": "array", "items": {"type": "string"}},
-                            "tools": {"type": ["array", "null"], "items": {"type": "string"}},
+                            "tools": {
+                                "type": ["array", "null"],
+                                "items": {"type": "string"},
+                                "description": "Execution tools; history_read/task_checkpoint are always available.",
+                            },
                         },
                         ["id", "instruction", "files"],
                     ),

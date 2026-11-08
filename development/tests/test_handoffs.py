@@ -33,6 +33,139 @@ def plan():
     }
 
 
+@pytest.mark.parametrize("selection", ["omitted", None, [], ["browser_read"]])
+def test_child_keeps_handoff_tools_without_adding_unselected_execution_tools(tmp_path, selection):
+    class Provider:
+        calls = 0
+        names = set()
+
+        async def complete(self, messages, tools, on_delta):
+            self.calls += 1
+            self.names = {tool.name for tool in tools}
+            if self.calls == 1:
+                return reply(calls=[ToolCall("checkpoint", "task_checkpoint", {"state": "ready", "next_steps": ""})])
+            return reply("Handoff recorded")
+
+    provider = Provider()
+    app = build_application(Settings(tmp_path), provider)
+    ctx = execution(app, app.fork())
+
+    async def scenario():
+        value = plan()
+        task = value["tasks"][0]
+        if selection != "omitted":
+            task["tools"] = selection
+        await app.runner.registry.execute("task_plan", value, ctx)
+        outcome = await app.runner.registry.execute("agent_task", {"task_id": "producer"}, ctx)
+        assert not outcome.is_error
+        receipt = json.loads(outcome.content)
+        child = app.events(receipt["branch_id"])
+        assignment = next(e for e in child if e.kind == "task.assignment")
+        expected = {"history_read", "task_checkpoint"}
+        if selection == "omitted" or selection is None:
+            expected |= {"file_list", "file_read", "file_write", "file_edit", "document_read"}
+        else:
+            expected |= set(selection)
+        assert provider.names == expected
+        assert assignment.payload["effective_tools"] == sorted(expected)
+        assert assignment.payload["task"]["tools"] == (None if selection == "omitted" else selection)
+        assert receipt["handoff"]["checkpoint_event_id"] is not None
+        assert provider.calls == 2  # No automatic review/checkpoint model request.
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        app.close()
+
+
+def test_restricted_children_can_record_interfaces_and_retrieve_handed_off_full_report(tmp_path):
+    class Provider:
+        steps = {"producer": 0, "consumer": 0}
+
+        async def complete(self, messages, tools, on_delta):
+            prompt = next(m.content for m in messages if m.role == "user")
+            payload = json.loads(prompt[prompt.index('{"original_requirements"') :])
+            task = payload["assigned_task"]["id"]
+            self.steps[task] += 1
+            assert {tool.name for tool in tools} == {"file_write", "history_read", "task_checkpoint"}
+            if task == "producer":
+                if self.steps[task] == 1:
+                    return reply(
+                        calls=[
+                            ToolCall("write", "file_write", {"path": "api.js", "text": "export const value=7;"}),
+                            ToolCall(
+                                "save",
+                                "task_checkpoint",
+                                {
+                                    "state": "API ready",
+                                    "next_steps": "consumer integrates",
+                                    "interfaces": [
+                                        {"name": "value", "provider_task": "producer", "signature": "value=7"}
+                                    ],
+                                    "unresolved": ["Consumer must integrate"],
+                                },
+                            ),
+                        ]
+                    )
+                return reply("start " * 400 + "FULL-REPORT-MIDDLE" + " end" * 400)
+            handed = payload["related_handoffs"][0]
+            assert handed["handoff"]["interface_source"] == "checkpoint"
+            assert handed["handoff"]["unresolved"] == ["Consumer must integrate"]
+            assert handed["files"][0]["matches_handoff"] is True
+            if self.steps[task] == 1:
+                assert "FULL-REPORT-MIDDLE" not in handed["report"]
+                return reply(
+                    calls=[
+                        ToolCall(
+                            "read",
+                            "history_read",
+                            {
+                                "branch_id": handed["branch_id"],
+                                "event_id": handed["handoff"]["report_event_id"],
+                            },
+                        )
+                    ]
+                )
+            if self.steps[task] == 2:
+                assert "FULL-REPORT-MIDDLE" in messages[-1].content
+                return reply(
+                    calls=[
+                        ToolCall("write", "file_write", {"path": "use.js", "text": "import {value} from './api.js';"}),
+                        ToolCall(
+                            "save",
+                            "task_checkpoint",
+                            {
+                                "state": "Consumer integrated",
+                                "next_steps": "Parent verifies",
+                                "unresolved": [],
+                            },
+                        ),
+                    ]
+                )
+            return reply("Consumer integrated using the exported value")
+
+    provider = Provider()
+    app = build_application(Settings(tmp_path), provider)
+    ctx = execution(app, app.fork())
+
+    async def scenario():
+        value = plan()
+        for task in value["tasks"]:
+            task["tools"] = ["file_write"]
+        await app.runner.registry.execute("task_plan", value, ctx)
+        producer = await app.runner.registry.execute("agent_task", {"task_id": "producer"}, ctx)
+        consumer = await app.runner.registry.execute("agent_task", {"task_id": "consumer"}, ctx)
+        assert not producer.is_error and not consumer.is_error
+        assert json.loads(consumer.content)["pending_task_ids"] == []
+        assert (tmp_path / "use.js").read_text() == "import {value} from './api.js';"
+        assert provider.steps == {"producer": 2, "consumer": 3}
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        app.close()
+
+
 @pytest.mark.parametrize("invalid", ["duplicate", "provider", "consumer"])
 def test_contract_references_are_structural_and_legacy_plans_remain_valid(tmp_path, invalid):
     value = plan()
