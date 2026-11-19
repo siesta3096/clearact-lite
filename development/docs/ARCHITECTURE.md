@@ -17,6 +17,7 @@
 | providers | 本地兼容HTTP/SSE模型，单次请求由messages决定；保持已加载模型 |
 | tools | 原十一项＋file_edit/task_plan/agent_task/task_checkpoint，共十五项；统一Schema与ToolResult |
 | integrations | 懒启动真实Playwright与MCP；共享会话，页面创建即被动捕获原始错误，动作与诊断留原始分支 |
+| tools.desktop | Windows 可选桌面工具，枚举窗口、保存主屏截图并发送键鼠输入，复用工具回执 |
 | storage | 完整SQLite消息/分支、写前快照、版本核对、字节/文本尾部、附件与写锁 |
 | gateway / web / cli | HTTP v1/SSE；参数控件、压缩/子代理/续跑阶段、子记录下载和父子修改恢复 |
 | development | 与Agent本体分开；测试、失败、用量、图、完整职责树及授权实施方案 |
@@ -70,6 +71,7 @@ clearact-lite/
 ├── development/
 │   ├── docs/
 │   │   ├── changes/
+│   │   │   ├── 2026-11-19-desktop.md                                                                  Windows 桌面原型、操作流程和验证边界
 │   │   │   ├── 2026-10-22-capabilities-tree.txt                                                             本轮完整逐文件职责树快照
 │   │   │   ├── 2026-10-22-capabilities.md                                                                   本轮解释图、实际验证、用量与未通过项
 │   │   │   ├── 2026-10-22-foundation-tree.txt                                                               基础版完整文件树（历史）
@@ -153,6 +155,7 @@ clearact-lite/
 │       ├── integrations/
 │       │   ├── __init__.py                                                                                  clearact_lite包边界
 │       │   ├── browser.py                                                                                   浏览器打开/读取/操作三个统一工具及 Schema
+│       │   ├── desktop.py   Windows 可选窗口枚举、截图和键鼠工具
 │       │   ├── browser_diagnostics.py                                                                       被动收集原始脚本/console/资源/HTTP错误；独立文档记录与有界模型回执，无重试
 │       │   ├── config.py                                                                                    三种 MCP 传输配置归一化、校验、私密值保留
 │       │   └── mcp.py                                                                                       服务/工具发现与调用两个统一工具，依赖 MCPPort

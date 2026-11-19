@@ -1,3 +1,6 @@
+import os
+import sys
+
 from clearact_lite.application import Application
 from clearact_lite.core.ports import ModelProvider
 from clearact_lite.integrations.browser import BrowserManager
@@ -8,6 +11,7 @@ from clearact_lite.settings import Settings
 from clearact_lite.storage.snapshots import FileSnapshots
 from clearact_lite.storage.sqlite import SQLiteStore
 from clearact_lite.tools.browser import ActBrowser, OpenBrowser, ReadBrowser
+from clearact_lite.tools.desktop import DesktopAction
 from clearact_lite.tools.documents import ReadDocument
 from clearact_lite.tools.files import DeliverFile, EditFile, ListFiles, ReadFile, WriteFile
 from clearact_lite.tools.history import ReadHistory
@@ -47,6 +51,7 @@ def build_application(
                 ActBrowser(browser),
                 ListMCPTools(mcp),
                 CallMCPTool(mcp),
+                *([DesktopAction()] if sys.platform == "win32" and os.getenv("CLEARACT_DESKTOP") == "1" else []),
             ],
             [browser, mcp],
         ),
